@@ -1,0 +1,12 @@
+#build directories
+**/build/**
+
+#vscode stuff
+.vscode/**
+
+#glfw and glad builds because system specific
+glfw-3.4/**
+glad/**
+
+#archives
+*.zip
