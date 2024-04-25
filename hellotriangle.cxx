@@ -3,16 +3,22 @@
 #include <GLFW/glfw3.h>
 
 float verts[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f
+    0.5f, 0.5f, 0.0f, //top right
+    -0.5f, -0.5f, 0.0f, //bottom left
+    0.5f, -0.5f, 0.0f, //bottom right
+    -0.5f, 0.5f, 0.0f //top left
+};
+
+unsigned int indicies[] = {
+    0, 1, 3, //first tri
+    1, 2, 3 // second tri
 };
 
 const char* vertshadersource = 
 "#version 330 core \n layout (location = 0) in vec3 aPos; \n void main() {\n gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n }";
 
 const char* fragshadersource = 
-"#version 330 core \n out vec4 fragColor; \n int main() { \n fragColor = {1.0f, 0.5f, 0.2f, 1.0f}; \n }";
+"#version 330 core \n out vec4 fragColor; \n void main() {\n fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n }";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -58,11 +64,22 @@ int main() {
     unsigned int VBO;
     //assigns memory position to VBO
     glGenBuffers(1, &VBO);
+
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    unsigned int EBO;
+    glGenBuffers(1, &EBO);
+
     //binds the GL array buffer object to the VBO memory position
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
+
     //loads the vertex data for the triangle to the array buffer with the pragma static draw.
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+    //glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -102,10 +119,6 @@ int main() {
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << infoLog << std::endl;
     }
 
-    glUseProgram(shaderProgram);
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -113,9 +126,15 @@ int main() {
     while(!glfwWindowShouldClose(window)) {
         processInput(window);
 
+        glUseProgram(shaderProgram);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
     glfwTerminate();
     return 0;
