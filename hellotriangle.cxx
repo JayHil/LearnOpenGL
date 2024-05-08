@@ -77,16 +77,18 @@ int main() {
     //loads the vertex data into the vertex array buffer.
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
+
     //vbo 2
     unsigned int VBO2;
     glGenBuffers(1, &VBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts2), verts2, GL_STATIC_DRAW);
     
     unsigned int VAO2;
     glGenVertexArrays(1, &VAO2);
     //end vbo 2
-
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
 
     unsigned int EBO;
     glGenBuffers(1, &EBO);
@@ -137,7 +139,6 @@ int main() {
     }
 
     //second shader in yellow
-
     unsigned int frag2Shader;
     frag2Shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(frag2Shader, 1, &frag2source, NULL);
@@ -172,14 +173,11 @@ int main() {
 
         glUseProgram(shaderProgram);
 
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
         glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glUseProgram(shaderProgram2);
-
-        glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(verts2), verts2, GL_STATIC_DRAW);
+        
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
