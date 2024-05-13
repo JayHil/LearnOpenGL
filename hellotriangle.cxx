@@ -1,6 +1,7 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <cmath>
 
 float verts[] = {
     -0.5f, -0.5f, 0.0f, //bottom left
@@ -23,10 +24,10 @@ const char* vertshadersource =
 "#version 330 core \n layout (location = 0) in vec3 aPos; \n void main() {\n gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n }";
 
 const char* fragshadersource = 
-"#version 330 core \n out vec4 fragColor; \n void main() {\n fragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n }";
+"#version 330 core \n out vec4 fragColor; \n uniform vec4 unicolor; \n void main() {\n fragColor = unicolor;\n }";
 
 const char* frag2source = 
-"#version 330 core \n out vec4 fragColor; \n void main() {\n fragColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);\n }";
+"#version 330 core \n out vec4 fragColor; \n void main() {\n fragColor = vec4(1.0, 1.0, 0.0, 1.0);\n }";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -108,7 +109,7 @@ int main() {
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED" << infoLog << std::endl;
     }
 
-    //first shader in orange
+    //first shader
 
     unsigned int fragmentShader;
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -172,6 +173,12 @@ int main() {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
         glUseProgram(shaderProgram);
+
+        //varies the uniform color val over time through different shades of green.
+        float timeVal = glfwGetTime();
+        float greenVal = (sin(timeVal)/2.0f) + 0.5f;
+        int fragColorLoc = glGetUniformLocation(shaderProgram, "unicolor");
+        glUniform4f(fragColorLoc, 0.0f, greenVal, 0.0f, 1.0f);
 
         glBindVertexArray(VAOs[0]);
         glDrawArrays(GL_TRIANGLES, 0, 3);
