@@ -4,30 +4,17 @@
 #include <cmath>
 
 float verts[] = {
-    -0.5f, -0.5f, 0.0f, //bottom left
-    -0.25f, 0.5f, 0.0f, //left peak
-    0.0f, -0.5f, 0.0f
-};
-
-float verts2[] = {
-    0.0f, -0.5f, 0.0f, //middle vert
-    0.25f, 0.5f, 0.0f, //right peak
-    0.5f, -0.5f, 0.0f //bottom right
-};
-
-unsigned int indicies[] = {
-    0, 1, 2, //first tri
-    2, 3, 4 // second tri
+    // positions        //colors
+    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, //bottom left
+    0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, //peak
+    0.5f, -0.5f, 0.0f, 0.0, 0.0f, 1.0f // bottom right
 };
 
 const char* vertshadersource = 
-"#version 330 core \n layout (location = 0) in vec3 aPos; \n void main() {\n gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n }";
+"#version 330 core \n layout (location = 0) in vec3 aPos; \n layout (location = 1) in vec3 aColor; \n out vec3 vecColor; \n void main() {\n gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n vecColor = aColor;\n }";
 
 const char* fragshadersource = 
-"#version 330 core \n out vec4 fragColor; \n uniform vec4 unicolor; \n void main() {\n fragColor = unicolor;\n }";
-
-const char* frag2source = 
-"#version 330 core \n out vec4 fragColor; \n void main() {\n fragColor = vec4(1.0, 1.0, 0.0, 1.0);\n }";
+"#version 330 core \n out vec4 fragColor; \n in vec4 vecColor; \n void main() {\n fragColor = vec4(vecColor, 1.0);\n }";
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     glViewport(0, 0, width, height);
@@ -66,11 +53,11 @@ int main() {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     //VAOs get generated and set first because VAOs store VBO info.
-    unsigned int VAOs[2];
-    glGenVertexArrays(2, VAOs);
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
 
-    unsigned int VBOs[2];
-    glGenBuffers(2, VBOs);
+    unsigned int VBO;
+    glGenBuffers(1, &VBO);
 
     /*
     unsigned int EBO;
@@ -80,18 +67,11 @@ int main() {
     */
 
     // 
-    glBindVertexArray(VAOs[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    glBindVertexArray(VAOs[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts2), verts2, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
 
     unsigned int vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -136,30 +116,6 @@ int main() {
         std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << infoLog << std::endl;
     }
 
-    //second shader in yellow
-    unsigned int frag2Shader;
-    frag2Shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(frag2Shader, 1, &frag2source, NULL);
-    glCompileShader(frag2Shader);
-
-    glGetShaderiv(frag2Shader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(frag2Shader, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED" << infoLog << std::endl;
-    }
-
-    unsigned int shaderProgram2;
-    shaderProgram2 = glCreateProgram();
-    glAttachShader(shaderProgram2, vertexShader);
-    glAttachShader(shaderProgram2, frag2Shader);
-    glLinkProgram(shaderProgram2);
-
-    glGetProgramiv(shaderProgram2, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram2, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED" << infoLog << std::endl;
-    }
-
     //how opengl draws primitives, default is filled tris
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -172,28 +128,15 @@ int main() {
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-        glUseProgram(shaderProgram);
-
-        //varies the uniform color val over time through different shades of green.
-        float timeVal = glfwGetTime();
-        float greenVal = (sin(timeVal)/2.0f) + 0.5f;
-        int fragColorLoc = glGetUniformLocation(shaderProgram, "unicolor");
-        glUniform4f(fragColorLoc, 0.0f, greenVal, 0.0f, 1.0f);
-
-        glBindVertexArray(VAOs[0]);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-
-        glUseProgram(shaderProgram2);
-        
-        glBindVertexArray(VAOs[1]);
+        glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(2, VAOs);
-    glDeleteBuffers(2, VBOs);
+    glDeleteVertexArrays(1, &VAO);
+    glDeleteBuffers(1, &VBO);
     glDeleteProgram(shaderProgram);
     //glDeleteProgram(shaderProgram2);
 
