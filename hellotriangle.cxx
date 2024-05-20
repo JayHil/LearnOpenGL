@@ -11,6 +11,12 @@ float verts[] = {
     0.5f, -0.5f, 0.0f, 0.0, 0.0f, 1.0f // bottom right
 };
 
+float texCoords[] = {
+    0.0f, 0.5f, 0.0f,//top
+    -0.5f, -0.5f, 0.0f,//bottom left
+    0.5f, -0.5f, 0.0f//bottom right
+};
+
 /**
 const char* vertshadersource = 
 "#version 330 core \n layout (location = 0) in vec3 aPos; \n layout (location = 1) in vec3 aColor; \n out vec3 vertColor; \n void main() {\n gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n vertColor = aColor;\n }";
@@ -67,7 +73,10 @@ int main() {
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
-    */
+    **/
+
+    glParameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -82,7 +91,7 @@ int main() {
     Shader baseShader = Shader("C:/Users/gheis/Desktop/Personal_projects/LearnOpenGL/vertexShader.vs", "C:/Users/gheis/Desktop/Personal_projects/LearnOpenGL/fragmentShader.fs");
 
     //how opengl draws primitives, default is filled tris
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //render loop
     while(!glfwWindowShouldClose(window)) {
