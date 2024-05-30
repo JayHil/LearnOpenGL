@@ -3,18 +3,18 @@
 #include <GLFW/glfw3.h>
 #include <cmath>
 #include "Shader.h"
+#include <stb_image.h>
 
 float verts[] = {
-    // positions        //colors
-    -0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, //bottom left
-    0.0f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, //peak
-    0.5f, -0.5f, 0.0f, 0.0, 0.0f, 1.0f // bottom right
+    // positions        //colors          //UV coords
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, //bottom left
+    -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, //top left
+    0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, //top right
+    0.5f, -0.5f, 0.0f, 0.0, 0.0f, 0.0f, 1.0f, 0.0f // bottom right
 };
 
-float texCoords[] = {
-    0.0f, 0.5f, 0.0f,//top
-    -0.5f, -0.5f, 0.0f,//bottom left
-    0.5f, -0.5f, 0.0f//bottom right
+float indicies[] = {
+
 };
 
 /**
@@ -68,15 +68,34 @@ int main() {
     unsigned int VBO;
     glGenBuffers(1, &VBO);
 
-    /*
     unsigned int EBO;
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
-    **/
+    
+    char texName[] = "container.jpg";
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
 
-    glParameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameter(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(texName, &width, &height, &nrChannels, 0);
+
+    if (data) {
+        //targets Texture2d, binds the loaded texture to the target/ID from the data container.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Could not load image" << texName << std::endl;
+    }
+
+    stbi_image_free(data);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
