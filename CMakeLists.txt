@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 #links the target executable HelloWindow to the source files hellowindow and glad.c
-add_executable(HelloTriangle hellotriangle.cxx glad.c stbInclude.c)
+add_executable(HelloTriangle glad.c stbInclude.c hellotriangle.cxx)
 
 #adds the glfw directory to the project to ensure it can find the includes/headers in this subdirectory
 add_subdirectory(glfw-3.4)

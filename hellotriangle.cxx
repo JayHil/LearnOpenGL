@@ -1,21 +1,14 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <cmath>
 #include "Shader.h"
 #include <stb_image.h>
 
-float verts[] = {
-    // positions        //colors          //UV coords
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, //bottom left
-    -0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, //top left
-    0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, //top right
-    0.5f, -0.5f, 0.0f, 0.0, 0.0f, 0.0f, 1.0f, 0.0f // bottom right
-};
-
-int indicies[] = {
-    0, 3, 1,
-};
+//float factor = 1.0f;
 
 /**
 const char* vertshadersource = 
@@ -33,6 +26,14 @@ void processInput(GLFWwindow* window){
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
+
+    // if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && factor < 1.0f) {
+    //     factor = factor + 0.0001f;
+    // }
+    
+    // if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && factor > 0.0f) {
+    //     factor = factor - 0.0001f;
+    // }
 }
 
 int main() {
@@ -50,79 +51,138 @@ int main() {
 
     //make new window the main context of the gl thread
     glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
+    //initializes glad (points to header and function addresses)
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Could not link glad to glfw" << std::endl;
         glfwTerminate();
         return -1;
     }
 
-    glViewport(0, 0, 800, 600);
+    //compile and link shader program from shader class.
+    Shader baseShader = Shader("../vertexShader.vs", "../fragmentShader.fs");
 
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    float verts[] = {
+        // positions        //colors          //UV coords
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, //bottom left
+        -0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, //top left
+        0.5f, 0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, //top right
+        0.5f, -0.5f, 0.0f, 1.0, 1.0f, 0.0f, 1.0f, 0.0f // bottom right
+    };
+    
+    int indicies[] = {
+        0, 3, 1, 
+        1, 2, 3
+    };
 
     //VAOs get generated and set first because VAOs store VBO info.
-    unsigned int VAO;
+    unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
 
-    unsigned int VBO;
     glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
 
-    unsigned int EBO;
+    //EBOs are used when you want to specify the order in which indices get drawn especially if indices are shared.
     glGenBuffers(1, &EBO);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicies), indicies, GL_STATIC_DRAW);
+
+    //SET POINTERS position, color, uvs
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8* sizeof(float), (void*)(6*sizeof(float)));
+    glEnableVertexAttribArray(2);
+
+    // IMAGE LOAD
     
-    char texName[] = "container.jpg";
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    char tex1[] = "../ashbaby.jpg";
+    char tex2[] = "../container.jpg";
+
+    unsigned int texture1, texture2;
+
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     int width, height, nrChannels;
-    unsigned char *data = stbi_load(texName, &width, &height, &nrChannels, 0);
+    stbi_set_flip_vertically_on_load(true);
+
+    unsigned char *data = stbi_load(tex1, &width, &height, &nrChannels, 0);
 
     if (data) {
         //targets Texture2d, binds the loaded texture to the target/ID from the data container.
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
     } else {
-        std::cout << "Could not load image" << texName << std::endl;
+        std::cout << "Could not load image: " << tex1 << std::endl;
     }
 
     stbi_image_free(data);
 
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(1);
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
 
-    //shaders with shader interface
-    Shader baseShader = Shader("C:/Users/gheis/Desktop/Personal_projects/LearnOpenGL/vertexShader.vs", "C:/Users/gheis/Desktop/Personal_projects/LearnOpenGL/fragmentShader.fs");
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    data = stbi_load(tex2, &width, &height, &nrChannels, 0);
+
+    if (data) {
+        //targets Texture2d, binds the loaded texture to the target/ID from the data container.
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Could not load image: " << tex2 << std::endl;
+    }
+
+    stbi_image_free(data);
 
     //how opengl draws primitives, default is filled tris
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glPolygonMode(GL_FRONT, GL_FILL);
 
+    baseShader.use();
+    baseShader.setInt("texture1", 0);
+    baseShader.setInt("texture2", 1);
+    //baseShader.setFloat("factor", 0.0f);
+    
     //render loop
     while(!glfwWindowShouldClose(window)) {
+        //input
         processInput(window);
-        baseShader.use();
-        //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+        //clear out old frame
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        //THIS ACTUALLY CLEARS WINDOW
+        glClear(GL_COLOR_BUFFER_BIT);
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        //baseShader.use();
+        //baseShader.setFloat("factor", factor);
+
+        //render frame
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -130,7 +190,7 @@ int main() {
 
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    //glDeleteProgram(shaderProgram2);
+    glDeleteBuffers(1, &EBO);
 
     glfwTerminate();
     return 0;
